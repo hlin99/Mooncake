@@ -84,6 +84,8 @@ class MasterService {
             return a->deletion_time > b->deletion_time;
         }
     };
+    std::unordered_map<std::string, int> duplicate_keys_;
+    std::mutex duplicate_keys_mutex_;
 
    public:
     MasterService(bool enable_gc = true);

@@ -72,7 +72,7 @@ cmake --build . -j$(nproc)
 sudo cmake --install .
 
 echo "*** Download and installing [golang-1.22] ***"
-wget https://go.dev/dl/go1.22.10.linux-amd64.tar.gz
+#wget https://go.dev/dl/go1.22.10.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.22.10.linux-amd64.tar.gz
 
 echo "*** Dependencies Installed! ***"
