@@ -67,7 +67,10 @@ ErrorCode BufferAllocatorManager::RemoveSegment(
 MasterService::MasterService(bool enable_gc)
     : buffer_allocator_manager_(std::make_shared<BufferAllocatorManager>()),
       allocation_strategy_(std::make_shared<RandomAllocationStrategy>()),
-      enable_gc_(enable_gc) {
+      enable_gc_(enable_gc),
+      duplicate_keys_(),
+      duplicate_keys_mutex_()
+{
     // Start the GC thread if enabled
     if (enable_gc_) {
         gc_running_ = true;
@@ -76,6 +79,7 @@ MasterService::MasterService(bool enable_gc)
     } else {
         VLOG(1) << "action=gc_disabled";
     }
+    VLOG(1) << "hlin!!!";
 }
 
 MasterService::~MasterService() {
@@ -180,10 +184,13 @@ ErrorCode MasterService::PutStart(
     size_t shard_idx = getShardIndex(key);
     std::unique_lock<std::mutex> lock(metadata_shards_[shard_idx].mutex);
 
+    std::lock_guard<std::mutex> lock_key(duplicate_keys_mutex_);
     auto it = metadata_shards_[shard_idx].metadata.find(key);
     if (it != metadata_shards_[shard_idx].metadata.end() &&
         !CleanupStaleHandles(it->second)) {
-        LOG(INFO) << "key=" << key << ", info=object_already_exists";
+	duplicate_keys_[key] += 1;
+	VLOG(1) << "hlin, object_already_exists, key=" << key;
+	LOG(INFO) << "key=" << key << ", info=object_already_exists";
         return ErrorCode::OBJECT_ALREADY_EXISTS;
     }
 
@@ -275,6 +282,20 @@ ErrorCode MasterService::PutRevoke(const std::string& key) {
 }
 
 ErrorCode MasterService::Remove(const std::string& key) {
+    std::lock_guard<std::mutex> lock_key(duplicate_keys_mutex_);
+    auto it = duplicate_keys_.find(key);
+    VLOG(1) << "hlin, MasterService::Remove";
+    if (it != duplicate_keys_.end()) {
+        if (it->second != 0) {
+	    VLOG(1) << "hlin, it->second before=" << it->second;
+	    --it->second;
+	    VLOG(1) << "hlin, it->second after=" << it->second;
+            return ErrorCode::OK;
+	}
+        else {
+            VLOG(1) << "hlin, it->second == 0";
+        }
+    }
     MetadataAccessor accessor(this, key);
     if (!accessor.Exists()) {
         VLOG(1) << "key=" << key << ", error=object_not_found";
