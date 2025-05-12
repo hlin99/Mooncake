@@ -227,6 +227,22 @@ int DistributedObjectStore::allocateSlices(std::vector<Slice> &slices,
     return 0;
 }
 
+int DistributedObjectStore::allocateSlices(std::vector<Slice> &slices,
+    std::span<const char> value) {
+    uint64_t offset = 0;
+    while (offset < value.size()) {
+        auto chunk_size = std::min(value.size() - offset, kMaxSliceSize);
+        auto ptr = client_buffer_allocator_->allocate(chunk_size);
+        if (!ptr) {
+            return 1;  // SliceGuard will handle cleanup
+        }
+        memcpy(ptr, value.data() + offset, chunk_size);
+        slices.emplace_back(Slice{ptr, chunk_size});
+        offset += chunk_size;
+    }
+    return 0;
+}
+
 int DistributedObjectStore::allocateSlices(
     std::vector<mooncake::Slice> &slices,
     const mooncake::Client::ObjectInfo &object_info, uint64_t &length) {
@@ -281,6 +297,34 @@ int DistributedObjectStore::tearDownAll() {
     device_name = "";
     protocol = "";
     return 0;
+}
+
+int DistributedObjectStore::put_unsafe(const std::string &key, int64_t ptr, int32_t size) {
+    // py::gil_scoped_release release_gil;
+    if (!client_) {
+        LOG(ERROR) << "Client is not initialized";
+        return 1;
+    }
+
+    char* data = (char*)(ptr);
+    std::string_view value(data, size);
+    std::vector<Slice> slices;
+    int ret = allocateSlices(slices, value);
+    if (ret) {
+        LOG(ERROR) << "Failed to allocate slices for put operation";
+        return ret;
+    }
+    ReplicateConfig config;
+    config.replica_num = 1;  // TODO: Make configurable
+
+    ErrorCode error_code = client_->Put(std::string(key), slices, config);
+    if (error_code != ErrorCode::OK) {
+        LOG(ERROR) << "Put operation failed with error: "
+                   << toString(error_code);
+        return toInt(error_code);
+    }
+    freeSlices(slices);
+    return 0; 
 }
 
 int DistributedObjectStore::put(const std::string &key,

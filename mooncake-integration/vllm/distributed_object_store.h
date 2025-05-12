@@ -77,6 +77,7 @@ class DistributedObjectStore {
      */
     int isExist(const std::string &key);
 
+    int put_unsafe(const std::string &key, int64_t ptr, int32_t size);
     /**
      * @brief Get the size of an object
      * @param key Key of the object
@@ -92,7 +93,8 @@ class DistributedObjectStore {
     int allocateSlices(std::vector<mooncake::Slice> &slices,
                        const mooncake::Client::ObjectInfo &object_info,
                        uint64_t &length);
-
+    int allocateSlices(std::vector<mooncake::Slice> &slices,
+                        std::span<const char> value);
     char *exportSlices(const std::vector<mooncake::Slice> &slices,
                        uint64_t length);
 

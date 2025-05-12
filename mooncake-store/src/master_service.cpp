@@ -135,7 +135,7 @@ ErrorCode MasterService::GetReplicaList(
 
     // Only mark for GC if enabled
     if (enable_gc_) {
-        MarkForGC(key, 1000);  // After 1 second, the object will be removed
+        MarkForGC(key, 2000);  // After 1 second, the object will be removed
     }
 
     return ErrorCode::OK;
