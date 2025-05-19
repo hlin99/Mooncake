@@ -299,7 +299,7 @@ int DistributedObjectStore::tearDownAll() {
     return 0;
 }
 
-int DistributedObjectStore::put_unsafe(const std::string &key, int64_t ptr, int32_t size) {
+int DistributedObjectStore::put_unsafe(const std::string &key, int64_t ptr, uint64_t size) {
     // py::gil_scoped_release release_gil;
     if (!client_) {
         LOG(ERROR) << "Client is not initialized";

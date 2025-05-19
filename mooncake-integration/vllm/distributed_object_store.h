@@ -77,7 +77,7 @@ class DistributedObjectStore {
      */
     int isExist(const std::string &key);
 
-    int put_unsafe(const std::string &key, int64_t ptr, int32_t size);
+    int put_unsafe(const std::string &key, int64_t ptr, uint64_t size);
     /**
      * @brief Get the size of an object
      * @param key Key of the object
