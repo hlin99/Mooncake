@@ -79,7 +79,7 @@ MasterService::MasterService(bool enable_gc)
     } else {
         VLOG(1) << "action=gc_disabled";
     }
-    VLOG(1) << "hlin!!!";
+    VLOG(1) << "<gc_fix>!!!";
 }
 
 MasterService::~MasterService() {
@@ -116,6 +116,7 @@ ErrorCode MasterService::UnmountSegment(const std::string& segment_name) {
 ErrorCode MasterService::GetReplicaList(
     const std::string& key, std::vector<Replica::Descriptor>& replica_list) {
     MetadataAccessor accessor(this, key);
+    VLOG(1) << "<gc_fix> GetReplicaList key=" << key;
     if (!accessor.Exists()) {
         VLOG(1) << "key=" << key << ", info=object_not_found";
         return ErrorCode::OBJECT_NOT_FOUND;
@@ -139,6 +140,7 @@ ErrorCode MasterService::GetReplicaList(
 
     // Only mark for GC if enabled
     if (enable_gc_) {
+        VLOG(1) << "<gc_fix> MarkForGC key=" << key;
         MarkForGC(key, 2000);  // After 1 second, the object will be removed
     }
 
@@ -186,10 +188,12 @@ ErrorCode MasterService::PutStart(
 
     std::lock_guard<std::mutex> lock_key(duplicate_keys_mutex_);
     auto it = metadata_shards_[shard_idx].metadata.find(key);
+    VLOG(1) << "<gc_fix>, put start, key=" << key;
     if (it != metadata_shards_[shard_idx].metadata.end() &&
         !CleanupStaleHandles(it->second)) {
 	duplicate_keys_[key] += 1;
-	VLOG(1) << "hlin, object_already_exists, key=" << key;
+	VLOG(1) << "<gc_fix>, object_already_exists, key=" << key << ", duplicate_keys_[key]= " << duplicate_keys_[key];
+
 	LOG(INFO) << "key=" << key << ", info=object_already_exists";
         return ErrorCode::OBJECT_ALREADY_EXISTS;
     }
@@ -284,16 +288,16 @@ ErrorCode MasterService::PutRevoke(const std::string& key) {
 ErrorCode MasterService::Remove(const std::string& key) {
     std::lock_guard<std::mutex> lock_key(duplicate_keys_mutex_);
     auto it = duplicate_keys_.find(key);
-    VLOG(1) << "hlin, MasterService::Remove";
+    VLOG(1) << "<gc_fix>, MasterService::Remove, key=" << key;
     if (it != duplicate_keys_.end()) {
         if (it->second != 0) {
-	    VLOG(1) << "hlin, it->second before=" << it->second;
+	    VLOG(1) << "<gc_fix>, it->second before=" << it->second;
 	    --it->second;
-	    VLOG(1) << "hlin, it->second after=" << it->second;
-            return ErrorCode::OK;
+	    VLOG(1) << "<gc_fix>, it->second after=" << it->second;
+            return ErrorCode::OBJECT_NOT_FOUND;
 	}
         else {
-            VLOG(1) << "hlin, it->second == 0";
+            VLOG(1) << "<gc_fix>, it->second == 0";
         }
     }
     MetadataAccessor accessor(this, key);
