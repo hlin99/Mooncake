@@ -79,7 +79,7 @@ MasterService::MasterService(bool enable_gc)
     } else {
         VLOG(1) << "action=gc_disabled";
     }
-    VLOG(1) << "<gc_fix>!!!";
+    VLOG(1) << "<gc_fix>!!! timeout value=20s";
 }
 
 MasterService::~MasterService() {
@@ -141,7 +141,7 @@ ErrorCode MasterService::GetReplicaList(
     // Only mark for GC if enabled
     if (enable_gc_) {
         VLOG(1) << "<gc_fix> MarkForGC key=" << key;
-        MarkForGC(key, 2000);  // After 1 second, the object will be removed
+        MarkForGC(key, 20000);  // After 20 second, the object will be removed
     }
 
     return ErrorCode::OK;
