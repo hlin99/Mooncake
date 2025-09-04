@@ -79,7 +79,7 @@ MasterService::MasterService(bool enable_gc)
     } else {
         VLOG(1) << "action=gc_disabled";
     }
-    VLOG(1) << "<gc_fix>!!! timeout value=20s";
+    VLOG(1) << "<gc_fix 0904>!!! timeout value=20s";
 }
 
 MasterService::~MasterService() {
